@@ -1,0 +1,41 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+github:
+  description: "Demo projects and examples for Apache Flink Agents"
+  homepage: https://github.com/apache/flink-agents-demos
+  labels:
+    - ai
+    - agent
+    - agentic-ai
+    - flink
+    - flink-agents
+    - demo
+    - examples
+  enabled_merge_buttons:
+    squash: true
+    rebase: true
+    merge: false
+  features:
+    issues: true
+    discussions: true
+    wiki: false
+    projects: false
+
+notifications:
+  commits: commits@flink.apache.org
+  issues: issues@flink.apache.org
+  pullrequests: issues@flink.apache.org
+  discussions: issues@flink.apache.org
