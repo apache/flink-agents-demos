@@ -1,0 +1,12 @@
+.idea
+.qwen
+.qoder
+
+venv
+target
+sample-jobs/target
+tmp
+flink-*
+*.jar
+*.tgz
+*.whl
