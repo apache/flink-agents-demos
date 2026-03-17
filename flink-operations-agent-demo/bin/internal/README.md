@@ -16,7 +16,7 @@ This directory contains internal scripts, tools, and configuration files that ar
 - `setup_infra.sh` - Sets up infrastructure services (Kafka, Elasticsearch)
 
 ### Job Management Scripts
-- `submit_agent_job.sh` - Submits the diagnosis agent job
+- `submit_agent_job.sh` - Submits the operations agent job
 - `submit_sample_jobs.sh` - Submits sample Flink jobs for demo
 
 ### Monitoring Scripts

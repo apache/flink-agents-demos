@@ -4,7 +4,7 @@ A demonstration project for Flink operations agent that automatically analyzes F
 
 ## Overview
 
-This project showcases an intelligent Flink job diagnosis system that:
+This project showcases an intelligent Flink job operations system that:
 - Detects Flink job health issues (backpressure, failures, etc.)
 - Provides AI-powered diagnostic analysis and recommendations
 - **Automatically attempts to fix issues** using available tools (restart jobs, adjust configurations, etc.)
@@ -62,22 +62,8 @@ Finally, the system outputs a complete **operations record** and feeds it back t
 - **DashScope API Key**: For AI-powered diagnosis
     - Sign up at https://dashscope.aliyun.com
     - Set environment variable: `export DASHSCOPE_API_KEY=your_api_key_here`
-    - If you prefer not to use Tongyi, you can modify the chat model section in `operations-agent-job/diagnosis_agent.py`. We didn't use Ollama by default because smaller models have poor demo performance, while larger models run slowly on personal computers. For more chat model options, see the [Flink Agents Documentation](https://nightlies.apache.org/flink/flink-agents-docs-release-0.2/docs/development/chat_models/).
+    - If you prefer not to use Tongyi, you can modify the chat model section in `operations-agent-job/operations_agent.py`. We didn't use Ollama by default because smaller models have poor demo performance, while larger models run slowly on personal computers. For more chat model options, see the [Flink Agents Documentation](https://nightlies.apache.org/flink/flink-agents-docs-release-0.2/docs/development/chat_models/).
 
-## Prerequisites
-
-- **Docker**: For running Kafka and Elasticsearch
-- **Ollama**: For generating embeddings (install from https://ollama.ai)
-  - Required model: `nomic-embed-text:latest`
-  - Run: `ollama pull nomic-embed-text:latest`
-- **Python 3.10 or 3.11**: For PyFlink and operations agent
-- **Java 11+**: For building and running Flink jobs
-- **Maven**: For building sample jobs
-- **curl**: For downloading dependencies
-- **DashScope API Key**: For AI-powered diagnosis
-  - Sign up at https://dashscope.aliyun.com
-  - Set environment variable: `export DASHSCOPE_API_KEY=your_api_key_here`
-  - If you prefer not to use Tongyi, you can modify the chat model section in `operations-agent-job/diagnosis_agent.py`. We didn't use Ollama by default because smaller models have poor demo performance, while larger models run slowly on personal computers. For more chat model options, see the [Flink Agents Documentation](https://nightlies.apache.org/flink/flink-agents-docs-release-0.2/docs/development/chat_models/).
 
 ## Quick Start
 
@@ -101,12 +87,12 @@ This script will automatically:
 **Services Available:**
 - Kafka: `localhost:9092`
 - Elasticsearch: `localhost:9200`
-- Flink Web UI: `http://localhost:8082`
+- Flink Web UI: `localhost:8082`
 
-**Diagnosis Results:** Saved to `tmp/diagnosis-result/` directory, organized by health status:
-- `healthy/` - Jobs with no issues
-- `auto_resolved/` - Issues fixed automatically by the agent
-- `requires_action/` - Issues requiring manual intervention
+**Operations Record:** Persisted to the `tmp/operations_record/` directory, classified by operational status:
+- `normal/` - Jobs operating normally without anomalies
+- `auto_remediated/` - Anomalies automatically remediated by the agent
+- `manual_intervention/` - Anomalies requiring manual intervention
 
 **Press Ctrl+C to stop the diagnosis result consumer** (other services continue running in background)
 
@@ -235,9 +221,6 @@ To stop all services and clean up:
 ```bash
 # Stop all services
 bin/stop_all.sh
-
-# Stop infrastructure services
-docker-compose down
 
 # Optional: Remove downloaded files
 rm -rf flink-1.20.3 flink-1.20.3-bin-scala_2.12.tgz

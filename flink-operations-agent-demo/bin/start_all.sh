@@ -25,7 +25,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "============================================================"
-echo "  Starting All Services for Diagnosis Agent Demo"
+echo "  Starting All Services for Flink Operations Agent Demo"
 echo "============================================================"
 echo ""
 

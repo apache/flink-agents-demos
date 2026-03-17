@@ -17,7 +17,7 @@
 # limitations under the License.
 ################################################################################
 
-# Stop all services for diagnosis-agent-demo
+# Stop all services for flink-operations-agent-demo
 # Usage: ./stop_all.sh
 
 set -e
@@ -26,12 +26,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "============================================================"
-echo "  Stopping All Services for Diagnosis Agent Demo"
+echo "  Stopping All Services for Flink Operations Agent Demo"
 echo "============================================================"
 echo ""
 
 # Step 1: Stop watermark collector
-echo "[Step 1/3] Stopping watermark collector..."
+echo "[Step 1/4] Stopping watermark collector..."
 echo "------------------------------------------------------------"
 "$SCRIPT_DIR/internal/start_metric_collector.sh" --stop
 if [ $? -ne 0 ]; then
@@ -40,7 +40,7 @@ fi
 echo ""
 
 # Step 2: Stop auto-send job info
-echo "[Step 2/3] Stopping auto-send job info..."
+echo "[Step 2/4] Stopping auto-send job info..."
 echo "------------------------------------------------------------"
 "$SCRIPT_DIR/internal/auto_send_job_info.sh" --stop
 if [ $? -ne 0 ]; then
@@ -49,7 +49,7 @@ fi
 echo ""
 
 # Step 3: Stop Flink cluster
-echo "[Step 3/3] Stopping Flink cluster..."
+echo "[Step 3/4] Stopping Flink cluster..."
 echo "------------------------------------------------------------"
 if [ -d "$PROJECT_DIR/flink-1.20.3" ]; then
     echo "Stopping Flink cluster..."
@@ -66,6 +66,22 @@ if [ -d "$PROJECT_DIR/flink-1.20.3" ]; then
     echo "Flink cluster stopped"
 else
     echo "Warning: Flink directory not found ($PROJECT_DIR/flink-1.20.3)"
+fi
+echo ""
+
+# Step 4: Stop Docker Compose services
+echo "[Step 4/4] Stopping Docker Compose services..."
+echo "------------------------------------------------------------"
+if [ -f "$PROJECT_DIR/docker-compose.yml" ]; then
+    echo "Running docker-compose down..."
+    cd "$PROJECT_DIR" && docker-compose down
+    if [ $? -ne 0 ]; then
+        echo "Warning: Failed to stop Docker Compose services"
+    else
+        echo "Docker Compose services stopped"
+    fi
+else
+    echo "Warning: docker-compose.yml not found ($PROJECT_DIR/docker-compose.yml)"
 fi
 echo ""
 

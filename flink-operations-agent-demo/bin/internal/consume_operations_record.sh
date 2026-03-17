@@ -17,7 +17,7 @@
 # limitations under the License.
 ################################################################################
 
-# Consume diagnosis results from Kafka and save as markdown files
+# Consume operations record from Kafka and save as markdown files
 # Usage: ./consume_operations_record.sh [output_dir]
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -38,7 +38,7 @@ mkdir -p "$OUTPUT_DIR/auto_remediated"
 mkdir -p "$OUTPUT_DIR/manual_intervention"
 
 echo "=========================================="
-echo "Kafka Diagnosis Result Consumer"
+echo "Kafka Operations Record Consumer"
 echo "Output directory: ${OUTPUT_DIR}"
 echo "Press Ctrl+C to exit"
 echo "=========================================="
@@ -54,7 +54,7 @@ docker exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
         continue
     fi
 
-    echo "Received Diagnosis Result: ${line:0:100}..."
+    echo "Received Operations Record: ${line:0:100}..."
 
     # Use Python to parse data and generate markdown file
     export KAFKA_MESSAGE="$line"
@@ -66,7 +66,7 @@ import os
 
 try:
     line = os.environ.get("KAFKA_MESSAGE", "")
-    output_dir = os.environ.get("OUTPUT_DIR_ENV", "diagnosis-result")
+    output_dir = os.environ.get("OUTPUT_DIR_ENV")
 
     # Use ast.literal_eval to parse Python dict format (single quotes)
     data = ast.literal_eval(line)
@@ -75,15 +75,15 @@ try:
     job_name = data.get("job_name", "unknown")
     base_url = data.get("base_url", "")
     status = data.get("status", "")
-    diagnosis_start_time = data.get("diagnosis_start_time", "")
-    diagnosis_end_time = data.get("diagnosis_end_time", "")
-    diagnosis_duration = data.get("diagnosis_duration", "")
+    start_time = data.get("start_time", "")
+    end_time = data.get("end_time", "")
+    duration = data.get("duration", "")
     diagnosis_result = data.get("diagnosis_result", "")
     need_intervention = data.get("need_intervention", False)
     remedy_process = data.get("remedy_process", "")
 
 
-    # Determine subdirectory based on diagnosis result
+    # Determine subdirectory based on operational status
     if need_intervention:
         subdir = "manual_intervention"
     elif len(remedy_process) > 0:
@@ -93,7 +93,7 @@ try:
 
     # Generate filename
     clean_job_name = job_name.replace(" ", "")
-    filename = f"{output_dir}/{subdir}/{clean_job_name}-{diagnosis_end_time}.md"
+    filename = f"{output_dir}/{subdir}/{clean_job_name}-{end_time}.md"
 
     if len(remedy_process) > 0:
         # Build markdown content
@@ -102,9 +102,9 @@ job_id: {job_id}
 base_url: {base_url}
 status: {status}
 need_intervention: {need_intervention}
-diagnosis_start_time: {diagnosis_start_time}
-diagnosis_end_time: {diagnosis_end_time}
-diagnosis_duration: {diagnosis_duration}
+start_time: {start_time}
+end_time: {end_time}
+duration: {duration}
 ---
 
 {diagnosis_result}
@@ -119,9 +119,9 @@ job_id: {job_id}
 base_url: {base_url}
 status: {status}
 need_intervention: {need_intervention}
-diagnosis_start_time: {diagnosis_start_time}
-diagnosis_end_time: {diagnosis_end_time}
-diagnosis_duration: {diagnosis_duration}
+start_time: {start_time}
+end_time: {end_time}
+duration: {duration}
 ---
 
 {diagnosis_result}

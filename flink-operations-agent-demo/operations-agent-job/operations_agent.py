@@ -153,7 +153,7 @@ class FlinkJobOperationsAgent(Agent):
             clazz=ResourceName.VectorStore.JAVA_WRAPPER_COLLECTION_MANAGEABLE_VECTOR_STORE,
             java_clazz=ResourceName.VectorStore.Java.ELASTICSEARCH_VECTOR_STORE,
             embedding_model="embedding_model",
-            host=os.environ.get("ES_HOST"),
+            host="http://localhost:9200",
             index="my_documents",
             dims=768,
         )
@@ -179,7 +179,7 @@ class FlinkJobOperationsAgent(Agent):
             ctx.sensory_memory.set("base_url", job_info.base_url)
             ctx.sensory_memory.set("job_id", job_info.job_id)
             ctx.sensory_memory.set("job_name", job_info.job_name)
-            ctx.sensory_memory.set("diagnosis_start_time", int(datetime.now().timestamp() * 1000))
+            ctx.sensory_memory.set("start_time", int(datetime.now().timestamp() * 1000))
 
             # Send chat request for AI analysis - let LLM decide which tools to use
             logging.info("🤖 Requesting AI problem identification with tool selection...")
@@ -201,7 +201,7 @@ class FlinkJobOperationsAgent(Agent):
                             )
                         )
                     else:
-                        diagnosis_start_time = ctx.sensory_memory.get("diagnosis_start_time")
+                        start_time = ctx.sensory_memory.get("start_time")
                         ctx.send_event(
                             OutputEvent(
                                 output={
@@ -209,11 +209,11 @@ class FlinkJobOperationsAgent(Agent):
                                     "job_name": ctx.sensory_memory.get("job_name"),
                                     "base_url": ctx.sensory_memory.get("base_url"),
                                     "status": "completed",
-                                    "diagnosis_start_time": datetime.fromtimestamp(diagnosis_start_time / 1000).strftime(
+                                    "start_time": datetime.fromtimestamp(start_time / 1000).strftime(
                                         "%Y-%m-%d %H:%M:%S"
                                     ),
-                                    "diagnosis_end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                    "diagnosis_duration": int(datetime.now().timestamp() * 1000) - diagnosis_start_time,
+                                    "end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                    "duration": int(datetime.now().timestamp() * 1000) - start_time,
                                     "diagnosis_result": "No issue found.",
                                 }
                             )
@@ -270,7 +270,7 @@ class FlinkJobOperationsAgent(Agent):
                             "job_name": ctx.sensory_memory.get("job_name"),
                             "base_url": ctx.sensory_memory.get("base_url"),
                             "status": "failed",
-                            "diagnosis_end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "diagnosis_result": f"AI analysis failed due to technical error due to {e!s}",
                         }
                     )
@@ -284,7 +284,7 @@ class FlinkJobOperationsAgent(Agent):
                     job_id = ctx.sensory_memory.get("job_id")
                     job_name = ctx.sensory_memory.get("job_name")
                     base_url = ctx.sensory_memory.get("base_url")
-                    diagnosis_start_time = ctx.sensory_memory.get("diagnosis_start_time")
+                    start_time = ctx.sensory_memory.get("start_time")
 
                     logging.info(f"🤖 Received AI analysis for job: {job_id}")
 
@@ -301,9 +301,9 @@ class FlinkJobOperationsAgent(Agent):
                             "job_name": job_name,
                             "base_url": base_url,
                             "status": "completed",
-                            "diagnosis_start_time": datetime.fromtimestamp(diagnosis_start_time / 1000).strftime("%Y-%m-%d %H:%M:%S"),
-                            "diagnosis_end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "diagnosis_duration": int(datetime.now().timestamp() * 1000) - diagnosis_start_time,
+                            "start_time": datetime.fromtimestamp(start_time / 1000).strftime("%Y-%m-%d %H:%M:%S"),
+                            "end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "duration": int(datetime.now().timestamp() * 1000) - start_time,
                             "diagnosis_result": result.full_diagnosis,
                         }
 
@@ -322,7 +322,7 @@ class FlinkJobOperationsAgent(Agent):
                                 "job_name": ctx.sensory_memory.get("job_name"),
                                 "base_url": ctx.sensory_memory.get("base_url"),
                                 "status": "failed",
-                                "diagnosis_end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "diagnosis_result": f"AI analysis failed due to technical error due to {e!s}",
                             }
                         )
@@ -359,7 +359,7 @@ class FlinkJobOperationsAgent(Agent):
                     job_id = ctx.sensory_memory.get("job_id")
                     job_name = ctx.sensory_memory.get("job_name")
                     base_url = ctx.sensory_memory.get("base_url")
-                    diagnosis_start_time = ctx.sensory_memory.get("diagnosis_start_time")
+                    start_time = ctx.sensory_memory.get("start_time")
 
                     logging.info(f"🤖 Received AI job adjustment result for job: {job_id}")
 
@@ -371,11 +371,11 @@ class FlinkJobOperationsAgent(Agent):
                         "job_name": job_name,
                         "base_url": base_url,
                         "status": "completed",
-                        "diagnosis_start_time": datetime.fromtimestamp(diagnosis_start_time / 1000).strftime(
+                        "start_time": datetime.fromtimestamp(start_time / 1000).strftime(
                             "%Y-%m-%d %H:%M:%S"
                         ),
-                        "diagnosis_end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "diagnosis_duration": int(datetime.now().timestamp() * 1000) - diagnosis_start_time,
+                        "end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "duration": int(datetime.now().timestamp() * 1000) - start_time,
                         "need_intervention": result.need_intervention,
                         "remedy_process": result.remedy_process,
                         "diagnosis_result": problem_diagnosis_res,
@@ -396,7 +396,7 @@ class FlinkJobOperationsAgent(Agent):
                                 "job_name": ctx.sensory_memory.get("job_name"),
                                 "base_url": ctx.sensory_memory.get("base_url"),
                                 "status": "failed",
-                                "diagnosis_end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "end_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "diagnosis_result": f"AI job adjustment failed due to technical error due to {e!s}",
                                 "need_intervention": True,
                             }
