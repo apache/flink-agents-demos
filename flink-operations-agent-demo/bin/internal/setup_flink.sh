@@ -57,7 +57,11 @@ cp $FLINK_HOME/opt/flink-python-1.20.3.jar $FLINK_HOME/lib/
 cp $SCRIPT_DIR/flink_config.yaml $FLINK_HOME/conf/config.yaml
 
 # Automatically set agent.baseLogDir to FLINK_HOME/log
-sed -i '' "s|baseLogDir: EVENT_LOG_DIR_PLACEHOLDER|baseLogDir: $FLINK_HOME/log|" $FLINK_HOME/conf/config.yaml
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "s|baseLogDir: EVENT_LOG_DIR_PLACEHOLDER|baseLogDir: $FLINK_HOME/log|" "$FLINK_HOME/conf/config.yaml"
+else
+    sed -i "s|baseLogDir: EVENT_LOG_DIR_PLACEHOLDER|baseLogDir: $FLINK_HOME/log|" "$FLINK_HOME/conf/config.yaml"
+fi
 
 # Download Kafka connector (skip if already exists)
 if [ ! -f "$FLINK_HOME/lib/flink-sql-connector-kafka-3.4.0-1.20.jar" ]; then
