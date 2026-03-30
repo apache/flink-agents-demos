@@ -225,7 +225,6 @@ bin/stop_all.sh
 # Optional: Remove downloaded files
 rm -rf flink-1.20.3 flink-1.20.3-bin-scala_2.12.tgz
 rm -rf venv
-rm -f flink_agents-0.2.0-py3-none-any.whl
 ```
 
 ## License
