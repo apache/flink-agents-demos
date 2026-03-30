@@ -300,3 +300,4 @@ classloader.parent-first-patterns.additional: jakarta.json;org.eclipse.parsson
 
 agent:
   baseLogDir: EVENT_LOG_DIR_PLACEHOLDER
+  prettyPrint: true

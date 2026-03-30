@@ -75,19 +75,13 @@ fi
 # On Linux/macOS:
 source venv/bin/activate
 
-# Download flink-agents wheel (skip if already exists)
-if [ ! -f "flink_agents-0.2.0-py3-none-any.whl" ]; then
-    curl -LO https://archive.apache.org/dist/flink/flink-agents-0.2.0/python/flink_agents-0.2.0-py3-none-any.whl
-else
-    echo "flink_agents-0.2.0-py3-none-any.whl already exists, skipping download"
-fi
-
-pip install flink_agents-0.2.0-py3-none-any.whl "apache-flink==1.20.3" "elasticsearch~=8.19" "setuptools>=75.3,<82"
+pip install "flink-agents==0.2.1" "apache-flink==1.20.3" "elasticsearch~=8.19" "setuptools>=75.3,<82"
 
 # Set PYTHONPATH to your Python site-packages directory
 export PYTHONPATH=$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
 
 # Copy the JAR from the Python package to Flink's lib directory
+cp $PYTHONPATH/flink_agents/lib/common/flink-agents-dist-*.jar $FLINK_HOME/lib/
 cp $PYTHONPATH/flink_agents/lib/flink-1.20/flink-agents-dist-*.jar $FLINK_HOME/lib/
 
 # Set environment variable for metric history directory and job metadata directory
