@@ -1,0 +1,12 @@
+# Apache Flink Agents Python SDK
+# 从源码安装: pip install -e /path/to/flink-agents/python/
+# flink-agents>=0.3.dev0
+
+# LLM 集成
+dashscope>=1.24.2
+
+# 数据模型
+pydantic>=2.0.0
+
+# 真实行情数据（--source real 时使用）
+akshare>=1.14.0

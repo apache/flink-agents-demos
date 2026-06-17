@@ -1,0 +1,88 @@
+agents:
+  - name: stock_analyst
+    description: |
+      YAML 声明式股票分析 Agent。
+      复用 workflow_agent_demo.py 中 StockTradingAgent 的 Action 方法，
+      但所有资源（连接、提示词、工具、模型）通过 YAML 声明式配置。
+
+    actions:
+      - name: process_input
+        function: workflow_agent_demo:StockTradingAgent.process_input
+        listen_to: [input]
+      - name: process_response
+        function: workflow_agent_demo:StockTradingAgent.process_response
+        listen_to: [chat_response]
+
+    chat_model_connections:
+      - name: tongyi_conn
+        clazz: tongyi
+
+    prompts:
+      - name: technical_prompt
+        messages:
+          - role: system
+            content: |
+              你是一位股票技术分析师。请根据输入的行情数据，使用可用的工具计算技术指标，
+              然后给出技术面分析结论。
+
+              分析要点:
+              1. 调用 calculate_rsi 工具计算 RSI 指标
+              2. 调用 calculate_macd 工具计算 MACD 指标
+              3. 可调用 check_portfolio 查看当前持仓
+              4. 综合指标给出技术面判断
+
+              请用简洁的中文输出你的技术分析结论，包括各指标的值和你的解读。
+          - role: user
+            content: |
+              请分析以下行情数据:
+              {input}
+
+      - name: decision_prompt
+        messages:
+          - role: system
+            content: |
+              你是一位交易决策专家。根据技术分析结果和当前持仓情况，做出最终的交易决策。
+
+              决策规则:
+              - 技术面看涨且持仓较少时考虑买入
+              - 技术面看跌且有持仓时考虑卖出
+              - 信号不明确时选择持有
+              - 单笔交易不超过 100 股
+              - 如果决定交易，使用 execute_trade 工具执行
+
+              请给出明确的交易决策和理由。
+          - role: user
+            content: |
+              技术分析结果:
+              {technical_analysis}
+
+              当前持仓:
+              {portfolio}
+
+              当前行情:
+              {tick}
+
+    chat_model_setups:
+      - name: technical_model
+        clazz: tongyi
+        connection: tongyi_conn
+        model: qwen-plus
+        prompt: technical_prompt
+        tools: [calculate_rsi, calculate_macd, check_portfolio]
+
+      - name: decision_model
+        clazz: tongyi
+        connection: tongyi_conn
+        model: qwen-plus
+        prompt: decision_prompt
+        tools: [execute_trade]
+
+    tools:
+      - name: calculate_rsi
+        function: tools:calculate_rsi
+      - name: calculate_macd
+        function: tools:calculate_macd
+      - name: check_portfolio
+        function: tools:check_portfolio
+      - name: execute_trade
+        function: tools:execute_trade
