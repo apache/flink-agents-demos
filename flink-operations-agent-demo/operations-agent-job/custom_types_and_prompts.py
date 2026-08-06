@@ -16,6 +16,8 @@
 # limitations under the License.
 #################################################################################
 
+from typing import ClassVar
+
 from flink_agents.api.chat_message import ChatMessage, MessageRole
 from flink_agents.api.events.event import Event
 from flink_agents.api.prompts.prompt import Prompt
@@ -257,4 +259,25 @@ class ProblemRemedyResult(BaseModel):
 
 class ProblemRemedyRequestEvent(Event):
     """Job Adjust Request Event."""
-    diagnoses_result: str
+
+    EVENT_TYPE: ClassVar[str] = "problem_remedy_request_event"
+
+    def __init__(self, diagnoses_result: str) -> None:
+        """Create a ProblemRemedyRequestEvent with the diagnosis result."""
+        super().__init__(
+            type=ProblemRemedyRequestEvent.EVENT_TYPE,
+            attributes={"diagnoses_result": diagnoses_result},
+        )
+
+    @classmethod
+    def from_event(cls, event: Event) -> "ProblemRemedyRequestEvent":
+        """Reconstruct a typed ProblemRemedyRequestEvent from a base Event."""
+        assert "diagnoses_result" in event.attributes
+        result = ProblemRemedyRequestEvent(diagnoses_result=event.attributes["diagnoses_result"])
+        result.id = event.id
+        return result
+
+    @property
+    def diagnoses_result(self) -> str:
+        """Return the diagnosis result."""
+        return self.get_attr("diagnoses_result")

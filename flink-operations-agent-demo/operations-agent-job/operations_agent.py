@@ -132,7 +132,7 @@ class FlinkJobOperationsAgent(Agent):
         """EmbeddingModelConnection responsible for ollama model service connection."""
         return ResourceDescriptor(
             clazz=ResourceName.EmbeddingModel.OLLAMA_CONNECTION,
-            host="http://localhost:11434",
+            base_url="http://localhost:11434",
         )
 
     @embedding_model_setup
@@ -158,7 +158,7 @@ class FlinkJobOperationsAgent(Agent):
             dims=768,
         )
 
-    @action(InputEvent, ChatResponseEvent)
+    @action(InputEvent.EVENT_TYPE, ChatResponseEvent.EVENT_TYPE)
     @staticmethod
     def simple_problem_identification(event: Event, ctx: RunnerContext) -> None:
         """Perform simple problem identification for job diagnosis.
@@ -168,11 +168,13 @@ class FlinkJobOperationsAgent(Agent):
             ctx: Runner context for sending events
         """
         # Extract job information from input
-        if isinstance(event, InputEvent):
-            job_info: JobInfo = event.input
-            if job_info is None:
+        if event.get_type() == InputEvent.EVENT_TYPE:
+            raw_input = InputEvent.from_event(event).input
+            if raw_input is None:
                 logging.error("job_info is None, skipping")
                 return
+            # Events are JSON-serialized in transit, so the input may arrive as a plain dict
+            job_info: JobInfo = JobInfo.model_validate(raw_input) if isinstance(raw_input, dict) else raw_input
             logging.info(f"🔍 Starting diagnosis: {job_info}")
 
             # Store job information in short-term memory
@@ -184,16 +186,23 @@ class FlinkJobOperationsAgent(Agent):
             # Send chat request for AI analysis - let LLM decide which tools to use
             logging.info("🤖 Requesting AI problem identification with tool selection...")
 
-            msg = ChatMessage(role=MessageRole.USER, extra_args={"job_info": job_info.model_dump_json()})
-            ctx.send_event(ChatRequestEvent(model="problem_identification_chat_model", messages=[msg]))
-        elif isinstance(event, ChatResponseEvent):
+            msg = ChatMessage(role=MessageRole.USER)
+            ctx.send_event(
+                ChatRequestEvent(
+                    model="problem_identification_chat_model",
+                    messages=[msg],
+                    prompt_args={"job_info": job_info.model_dump_json()},
+                )
+            )
+        elif event.get_type() == ChatResponseEvent.EVENT_TYPE:
+            response = ChatResponseEvent.from_event(event).response
             sop = ctx.sensory_memory.get("sop")
             problem_diagnosis_res = ctx.sensory_memory.get("problem_diagnosis_res")
             if sop is None and problem_diagnosis_res is None:
-                ctx.sensory_memory.set("problem_identification_res", event.response.content)
-                logging.info(f"SOP is not set, retrieving SOP with query: {event.response.content}")
+                ctx.sensory_memory.set("problem_identification_res", response.content)
+                logging.info(f"SOP is not set, retrieving SOP with query: {response.content}")
                 try:
-                    result = ProblemIdentificationResult.model_validate_json(event.response.content)
+                    result = ProblemIdentificationResult.model_validate_json(response.content)
                     if result.has_issue:
                         ctx.send_event(
                             ContextRetrievalRequestEvent(
@@ -224,11 +233,11 @@ class FlinkJobOperationsAgent(Agent):
                     # In production, use high-performance models and improve error handling logic.
                     ctx.send_event(
                         ContextRetrievalRequestEvent(
-                            query=event.response.content, vector_store="vector_store", max_results=1
+                            query=response.content, vector_store="vector_store", max_results=1
                         )
                     )
 
-    @action(ContextRetrievalResponseEvent, ChatResponseEvent)
+    @action(ContextRetrievalResponseEvent.EVENT_TYPE, ChatResponseEvent.EVENT_TYPE)
     @staticmethod
     def deep_problem_analysis(event: Event, ctx: RunnerContext) -> None:
         """Perform deep problem diagnosis using retrieved SOP context.
@@ -237,8 +246,8 @@ class FlinkJobOperationsAgent(Agent):
             event: ContextRetrievalResponseEvent containing retrieved SOP, or ChatResponseEvent containing AI diagnosis result
             ctx: Runner context for sending output events
         """
-        if isinstance(event, ContextRetrievalResponseEvent):
-            sop = event.documents[0].content
+        if event.get_type() == ContextRetrievalResponseEvent.EVENT_TYPE:
+            sop = ContextRetrievalResponseEvent.from_event(event).documents[0].content
             logging.info(f"📚 SOP retrieved: {sop}")
             ctx.sensory_memory.set("sop", sop)
 
@@ -253,11 +262,14 @@ class FlinkJobOperationsAgent(Agent):
                 # Send chat request for AI analysis - let LLM decide which tools to use
                 logging.info("🤖 Requesting AI analysis with tool selection...")
 
-                msg = ChatMessage(
-                    role=MessageRole.USER,
-                    extra_args={"job_info": job_info, "sop": sop, "problem_identification_res": problem_identification_res},
+                msg = ChatMessage(role=MessageRole.USER)
+                ctx.send_event(
+                    ChatRequestEvent(
+                        model="diagnosis_chat_model",
+                        messages=[msg],
+                        prompt_args={"job_info": job_info, "sop": sop, "problem_identification_res": problem_identification_res},
+                    )
                 )
-                ctx.send_event(ChatRequestEvent(model="diagnosis_chat_model", messages=[msg]))
 
             except Exception as e:
                 error_msg = f"Diagnosis failed for job {job_info.job_id}: {e!s}"
@@ -276,7 +288,8 @@ class FlinkJobOperationsAgent(Agent):
                     )
                 )
 
-        elif isinstance(event, ChatResponseEvent):
+        elif event.get_type() == ChatResponseEvent.EVENT_TYPE:
+            response = ChatResponseEvent.from_event(event).response
             sop = ctx.sensory_memory.get("sop")
             problem_diagnosis_res = ctx.sensory_memory.get("problem_diagnosis_res")
             if sop is not None and problem_diagnosis_res is None:
@@ -288,7 +301,7 @@ class FlinkJobOperationsAgent(Agent):
 
                     logging.info(f"🤖 Received AI analysis for job: {job_id}")
 
-                    result = ProblemDiagnosisResult.model_validate_json(event.response.content)
+                    result = ProblemDiagnosisResult.model_validate_json(response.content)
 
                     if result.need_adjustment:
                         ctx.send_event(
@@ -328,7 +341,7 @@ class FlinkJobOperationsAgent(Agent):
                         )
                     )
 
-    @action(ProblemRemedyRequestEvent, ChatResponseEvent)
+    @action(ProblemRemedyRequestEvent.EVENT_TYPE, ChatResponseEvent.EVENT_TYPE)
     @staticmethod
     def try_problem_remedy(event: Event, ctx: RunnerContext) -> None:
         """Try to address the problem based on the diagnosis results.
@@ -337,8 +350,9 @@ class FlinkJobOperationsAgent(Agent):
             event: ProblemRemedyRequestEvent containing job adjustment request
             ctx: Runner context for sending output events
         """
-        if isinstance(event, ProblemRemedyRequestEvent):
-            ctx.sensory_memory.set("problem_diagnosis_res", event.diagnoses_result)
+        if event.get_type() == ProblemRemedyRequestEvent.EVENT_TYPE:
+            diagnoses_result = ProblemRemedyRequestEvent.from_event(event).diagnoses_result
+            ctx.sensory_memory.set("problem_diagnosis_res", diagnoses_result)
             # Send chat request for AI analysis - let LLM decide which tools to use
             logging.info("🤖 Requesting AI job adjustment...")
 
@@ -347,12 +361,16 @@ class FlinkJobOperationsAgent(Agent):
             job_name = ctx.sensory_memory.get("job_name")
             job_info = JobInfo(base_url=base_url, job_id=job_id, job_name=job_name)
 
-            msg = ChatMessage(
-                role=MessageRole.USER,
-                extra_args={"job_info": job_info, "problem_diagnosis_res": event.diagnoses_result},
+            msg = ChatMessage(role=MessageRole.USER)
+            ctx.send_event(
+                ChatRequestEvent(
+                    model="remedy_chat_model",
+                    messages=[msg],
+                    prompt_args={"job_info": job_info, "problem_diagnosis_res": diagnoses_result},
+                )
             )
-            ctx.send_event(ChatRequestEvent(model="remedy_chat_model", messages=[msg]))
-        elif isinstance(event, ChatResponseEvent):
+        elif event.get_type() == ChatResponseEvent.EVENT_TYPE:
+            response = ChatResponseEvent.from_event(event).response
             problem_diagnosis_res = ctx.sensory_memory.get("problem_diagnosis_res")
             if problem_diagnosis_res is not None:
                 try:
@@ -363,7 +381,7 @@ class FlinkJobOperationsAgent(Agent):
 
                     logging.info(f"🤖 Received AI job adjustment result for job: {job_id}")
 
-                    result = ProblemRemedyResult.model_validate_json(event.response.content)
+                    result = ProblemRemedyResult.model_validate_json(response.content)
 
                     # Create output event
                     output_data = {
