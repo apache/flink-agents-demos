@@ -71,15 +71,37 @@ else
 fi
 
 # Create a virtual environment in a directory named 'venv'
+# flink-agents 0.3.x requires Python >=3.10,<3.13; apache-flink 1.20 supports up to 3.11
 if [ ! -d "venv" ]; then
-    python3 -m venv venv
+    PYTHON_BIN=""
+    for candidate in python3.11 python3.10 python3; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            if "$candidate" -c 'import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,11) else 1)'; then
+                PYTHON_BIN="$candidate"
+                break
+            fi
+        fi
+    done
+    if [ -z "$PYTHON_BIN" ]; then
+        echo "Error: No suitable Python interpreter found (requires Python 3.10 or 3.11)"
+        exit 1
+    fi
+    echo "Creating virtual environment with $PYTHON_BIN ($($PYTHON_BIN --version))"
+    "$PYTHON_BIN" -m venv venv
 fi
 
 # Activate the virtual environment
 # On Linux/macOS:
 source venv/bin/activate
 
-pip install "flink-agents==0.2.1" "apache-flink==1.20.3" "elasticsearch~=8.19" "setuptools>=75.3,<82"
+# Constrain setuptools in PEP 517 build environments (apache-beam sdist build
+# imports pkg_resources, which was removed in setuptools>=81)
+BUILD_CONSTRAINT_FILE="$(mktemp)"
+echo "setuptools<81" > "$BUILD_CONSTRAINT_FILE"
+
+PIP_CONSTRAINT="$BUILD_CONSTRAINT_FILE" pip install "flink-agents==0.3.1" "apache-flink==1.20.3" "elasticsearch~=8.19" "setuptools>=75.3,<82"
+
+rm -f "$BUILD_CONSTRAINT_FILE"
 
 # Set PYTHONPATH to your Python site-packages directory
 export PYTHONPATH=$(python -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')

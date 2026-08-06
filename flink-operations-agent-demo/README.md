@@ -62,7 +62,7 @@ Finally, the system outputs a complete **operations record** and feeds it back t
 - **DashScope API Key**: For AI-powered diagnosis
     - Sign up at https://dashscope.aliyun.com
     - Set environment variable: `export DASHSCOPE_API_KEY=your_api_key_here`
-    - If you prefer not to use Tongyi, you can modify the chat model section in `operations-agent-job/operations_agent.py`. We didn't use Ollama by default because smaller models have poor demo performance, while larger models run slowly on personal computers. For more chat model options, see the [Flink Agents Documentation](https://nightlies.apache.org/flink/flink-agents-docs-release-0.2/docs/development/chat_models/).
+    - If you prefer not to use Tongyi, you can modify the chat model section in `operations-agent-job/operations_agent.py`. We didn't use Ollama by default because smaller models have poor demo performance, while larger models run slowly on personal computers. For more chat model options, see the [Flink Agents Documentation](https://nightlies.apache.org/flink/flink-agents-docs-release-0.3/docs/development/chat_models/).
 
 
 ## Quick Start

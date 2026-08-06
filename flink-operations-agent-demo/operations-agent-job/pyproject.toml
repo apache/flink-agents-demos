@@ -24,7 +24,7 @@ requires-python = ">=3.10"
 
 dependencies = [
     "apache-flink==1.20.3",
-    "flink-agents",
+    "flink-agents>=0.3.1",
     "pydantic>=2.0.0",
     "pyyaml>=6.0.0",
 ]
