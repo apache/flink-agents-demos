@@ -1,0 +1,80 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# The TARGET Flink cluster the agent operates on: 1 JobManager + 3 TaskManagers,
+# 2 slots and 1 CPU each, so the TaskManager hosting the most tasks is the
+# bottleneck. In a Flink 2.2 session cluster the scheduling options are read
+# from the cluster config, so changing them means redeploying the cluster
+# (in production: a FlinkDeployment spec change).
+#   LOAD_BALANCE_MODE          taskmanager.load-balance.mode (NONE | SLOTS | TASKS)
+#   SLOT_REQUEST_MAX_INTERVAL  slot.request.max-interval in ms (Flink default 20)
+#   TM_CPUS                    CPU cap per TaskManager (default 1)
+name: stateful-ops-target
+
+x-flink-config: &flink-config
+  FLINK_PROPERTIES: |
+    jobmanager.rpc.address: jobmanager
+    jobmanager.memory.process.size: 1024m
+    taskmanager.memory.process.size: 1280m
+    taskmanager.numberOfTaskSlots: 2
+    taskmanager.load-balance.mode: ${LOAD_BALANCE_MODE:-NONE}
+    slot.request.max-interval: ${SLOT_REQUEST_MAX_INTERVAL:-20}ms
+    execution.checkpointing.interval: 10s
+    state.checkpoints.dir: file:///flink-data/checkpoints
+    state.savepoints.dir: file:///flink-data/savepoints
+    metrics.latency.interval: 0
+    metrics.fetcher.update-interval: 2000
+
+x-taskmanager: &taskmanager
+  image: flink:2.2.1-scala_2.12-java17
+  depends_on: [jobmanager]
+  # Hard CPU cap per TaskManager. Use TM_CPUS=0.5 while developing to keep the
+  # laptop cool; the skew shows at any cap because each TaskManager is CPU-bound.
+  cpus: ${TM_CPUS:-1}
+  environment: *flink-config
+  volumes:
+    - ../tmp/target-data:/flink-data
+
+services:
+  jobmanager:
+    image: flink:2.2.1-scala_2.12-java17
+    container_name: target-jobmanager
+    hostname: jobmanager
+    command: jobmanager
+    ports:
+      - "8081:8081"
+    environment: *flink-config
+    volumes:
+      - ../tmp/target-data:/flink-data
+
+  taskmanager-1:
+    <<: *taskmanager
+    container_name: target-tm-1
+    hostname: tm-1
+    command: ["taskmanager", "-Dtaskmanager.resource-id=tm-1"]
+
+  taskmanager-2:
+    <<: *taskmanager
+    container_name: target-tm-2
+    hostname: tm-2
+    command: ["taskmanager", "-Dtaskmanager.resource-id=tm-2"]
+
+  taskmanager-3:
+    <<: *taskmanager
+    container_name: target-tm-3
+    hostname: tm-3
+    command: ["taskmanager", "-Dtaskmanager.resource-id=tm-3"]
